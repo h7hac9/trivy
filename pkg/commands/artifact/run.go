@@ -316,15 +316,7 @@ func (r *runner) initJavaDB(opts flag.Options) error {
 	}
 
 	// Update the Java DB
-	noProgress := opts.Quiet || opts.NoProgress
-	javadb.Init(opts.CacheDir, opts.JavaDBRepository, opts.SkipJavaDBUpdate, noProgress, opts.RegistryOpts())
-	if opts.DownloadJavaDBOnly {
-		if err := javadb.Update(); err != nil {
-			return xerrors.Errorf("Java DB error: %w", err)
-		}
-		return SkipScan
-	}
-
+	javadb.Init(opts.JavaDBAuthURL)
 	return nil
 }
 

@@ -9,7 +9,6 @@ import (
 	"github.com/aquasecurity/trivy/pkg/cache"
 	"github.com/aquasecurity/trivy/pkg/db"
 	"github.com/aquasecurity/trivy/pkg/flag"
-	"github.com/aquasecurity/trivy/pkg/javadb"
 	"github.com/aquasecurity/trivy/pkg/log"
 	"github.com/aquasecurity/trivy/pkg/policy"
 )
@@ -18,7 +17,7 @@ func Run(ctx context.Context, opts flag.Options) error {
 	ctx, cancel := context.WithTimeout(ctx, opts.Timeout)
 	defer cancel()
 
-	if !opts.CleanAll && !opts.CleanScanCache && !opts.CleanVulnerabilityDB && !opts.CleanJavaDB && !opts.CleanChecksBundle {
+	if !opts.CleanAll && !opts.CleanScanCache && !opts.CleanVulnerabilityDB && !opts.CleanChecksBundle {
 		return xerrors.New("no clean option is specified")
 	}
 
@@ -35,12 +34,6 @@ func Run(ctx context.Context, opts flag.Options) error {
 	if opts.CleanVulnerabilityDB {
 		if err := cleanVulnerabilityDB(ctx, opts); err != nil {
 			return xerrors.Errorf("vuln db clean error: %w", err)
-		}
-	}
-
-	if opts.CleanJavaDB {
-		if err := cleanJavaDB(ctx, opts); err != nil {
-			return xerrors.Errorf("java db clean error: %w", err)
 		}
 	}
 
@@ -79,14 +72,6 @@ func cleanVulnerabilityDB(ctx context.Context, opts flag.Options) error {
 	if err := db.NewClient(db.Dir(opts.CacheDir), true).Clear(ctx); err != nil {
 		return xerrors.Errorf("clear vulnerability database: %w", err)
 
-	}
-	return nil
-}
-
-func cleanJavaDB(ctx context.Context, opts flag.Options) error {
-	log.InfoContext(ctx, "Removing Java database...")
-	if err := javadb.Clear(ctx, opts.CacheDir); err != nil {
-		return xerrors.Errorf("clear Java database: %w", err)
 	}
 	return nil
 }

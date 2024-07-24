@@ -133,12 +133,15 @@ require (
 	sigs.k8s.io/yaml v1.4.0
 )
 
+require github.com/h7hac9/trivy-java-db v0.0.0-20240724010136-e43c4436335c
+
 require (
 	cloud.google.com/go v0.112.1 // indirect
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	cloud.google.com/go/iam v1.1.6 // indirect
 	cloud.google.com/go/storage v1.39.1 // indirect
 	dario.cat/mergo v1.0.0 // indirect
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20230811130428-ced1acdcaa24 // indirect
 	github.com/AdamKorcz/go-118-fuzz-build v0.0.0-20230306123547-8075edf89bb0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.9.0 // indirect
@@ -232,6 +235,7 @@ require (
 	github.com/go-openapi/spec v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/go-openapi/validate v0.24.0 // indirect
+	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/go-test/deep v1.1.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/goccy/go-yaml v1.9.5 // indirect

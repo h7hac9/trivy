@@ -32,7 +32,6 @@ var (
 type CleanFlagGroup struct {
 	CleanAll             *Flag[bool]
 	CleanVulnerabilityDB *Flag[bool]
-	CleanJavaDB          *Flag[bool]
 	CleanChecksBundle    *Flag[bool]
 	CleanScanCache       *Flag[bool]
 }
@@ -40,7 +39,6 @@ type CleanFlagGroup struct {
 type CleanOptions struct {
 	CleanAll             bool
 	CleanVulnerabilityDB bool
-	CleanJavaDB          bool
 	CleanChecksBundle    bool
 	CleanScanCache       bool
 }
@@ -49,7 +47,6 @@ func NewCleanFlagGroup() *CleanFlagGroup {
 	return &CleanFlagGroup{
 		CleanAll:             CleanAll.Clone(),
 		CleanVulnerabilityDB: CleanVulnerabilityDB.Clone(),
-		CleanJavaDB:          CleanJavaDB.Clone(),
 		CleanChecksBundle:    CleanChecksBundle.Clone(),
 		CleanScanCache:       CleanScanCache.Clone(),
 	}
@@ -63,7 +60,6 @@ func (fg *CleanFlagGroup) Flags() []Flagger {
 	return []Flagger{
 		fg.CleanAll,
 		fg.CleanVulnerabilityDB,
-		fg.CleanJavaDB,
 		fg.CleanChecksBundle,
 		fg.CleanScanCache,
 	}
@@ -77,7 +73,6 @@ func (fg *CleanFlagGroup) ToOptions() (CleanOptions, error) {
 	return CleanOptions{
 		CleanAll:             fg.CleanAll.Value(),
 		CleanVulnerabilityDB: fg.CleanVulnerabilityDB.Value(),
-		CleanJavaDB:          fg.CleanJavaDB.Value(),
 		CleanChecksBundle:    fg.CleanChecksBundle.Value(),
 		CleanScanCache:       fg.CleanScanCache.Value(),
 	}, nil

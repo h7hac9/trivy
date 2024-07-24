@@ -7,7 +7,6 @@ import (
 	"golang.org/x/xerrors"
 
 	"github.com/aquasecurity/trivy/pkg/db"
-	"github.com/aquasecurity/trivy/pkg/javadb"
 	"github.com/aquasecurity/trivy/pkg/log"
 )
 
@@ -56,11 +55,11 @@ var (
 		Default:    db.DefaultRepository,
 		Usage:      "OCI repository to retrieve trivy-db from",
 	}
-	JavaDBRepositoryFlag = Flag[string]{
-		Name:       "java-db-repository",
-		ConfigName: "db.java-repository",
-		Default:    javadb.DefaultRepository,
-		Usage:      "OCI repository to retrieve trivy-java-db from",
+	JavaDBAuthURLFlag = Flag[string]{
+		Name:       "java-db-auth-url",
+		ConfigName: "db.java-db-auth-url",
+		Default:    "",
+		Usage:      "Java DB auth URL",
 	}
 	LightFlag = Flag[bool]{
 		Name:       "light",
@@ -79,7 +78,7 @@ type DBFlagGroup struct {
 	SkipJavaDBUpdate   *Flag[bool]
 	NoProgress         *Flag[bool]
 	DBRepository       *Flag[string]
-	JavaDBRepository   *Flag[string]
+	JavaDBAuthURLFlag  *Flag[string]
 	Light              *Flag[bool] // deprecated
 }
 
@@ -92,6 +91,7 @@ type DBOptions struct {
 	NoProgress         bool
 	DBRepository       name.Reference
 	JavaDBRepository   name.Reference
+	JavaDBAuthURL      string
 }
 
 // NewDBFlagGroup returns a default DBFlagGroup
@@ -105,7 +105,7 @@ func NewDBFlagGroup() *DBFlagGroup {
 		Light:              LightFlag.Clone(),
 		NoProgress:         NoProgressFlag.Clone(),
 		DBRepository:       DBRepositoryFlag.Clone(),
-		JavaDBRepository:   JavaDBRepositoryFlag.Clone(),
+		JavaDBAuthURLFlag:  JavaDBAuthURLFlag.Clone(),
 	}
 }
 
@@ -122,7 +122,7 @@ func (f *DBFlagGroup) Flags() []Flagger {
 		f.SkipJavaDBUpdate,
 		f.NoProgress,
 		f.DBRepository,
-		f.JavaDBRepository,
+		f.JavaDBAuthURLFlag,
 		f.Light,
 	}
 }
@@ -136,6 +136,7 @@ func (f *DBFlagGroup) ToOptions() (DBOptions, error) {
 	skipJavaDBUpdate := f.SkipJavaDBUpdate.Value()
 	downloadDBOnly := f.DownloadDBOnly.Value()
 	downloadJavaDBOnly := f.DownloadJavaDBOnly.Value()
+	javaDBAuthURL := f.JavaDBAuthURLFlag.Value()
 
 	if downloadDBOnly && skipDBUpdate {
 		return DBOptions{}, xerrors.New("--skip-db-update and --download-db-only options can not be specified both")
@@ -158,18 +159,6 @@ func (f *DBFlagGroup) ToOptions() (DBOptions, error) {
 		}
 	}
 
-	if f.JavaDBRepository != nil {
-		if javaDBRepository, err = name.ParseReference(f.JavaDBRepository.Value(), name.WithDefaultTag("")); err != nil {
-			return DBOptions{}, xerrors.Errorf("invalid javadb repository: %w", err)
-		}
-		// Add the schema version if the tag is not specified for backward compatibility.
-		if t, ok := javaDBRepository.(name.Tag); ok && t.TagStr() == "" {
-			javaDBRepository = t.Tag(fmt.Sprint(javadb.SchemaVersion))
-			log.Info("Adding schema version to the Java DB repository for backward compatibility",
-				log.String("repository", javaDBRepository.String()))
-		}
-	}
-
 	return DBOptions{
 		Reset:              f.Reset.Value(),
 		DownloadDBOnly:     downloadDBOnly,
@@ -179,5 +168,6 @@ func (f *DBFlagGroup) ToOptions() (DBOptions, error) {
 		NoProgress:         f.NoProgress.Value(),
 		DBRepository:       dbRepository,
 		JavaDBRepository:   javaDBRepository,
+		JavaDBAuthURL:      javaDBAuthURL,
 	}, nil
 }

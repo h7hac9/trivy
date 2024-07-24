@@ -1,118 +1,18 @@
 package javadb
 
 import (
-	"context"
-	"errors"
-	"fmt"
-	"os"
-	"path/filepath"
-	"sort"
-	"sync"
-	"time"
-
-	"github.com/google/go-containerregistry/pkg/name"
 	"golang.org/x/xerrors"
+	"sort"
 
-	"github.com/aquasecurity/trivy-java-db/pkg/db"
-	"github.com/aquasecurity/trivy-java-db/pkg/types"
 	"github.com/aquasecurity/trivy/pkg/dependency/parser/java/jar"
-	ftypes "github.com/aquasecurity/trivy/pkg/fanal/types"
-	"github.com/aquasecurity/trivy/pkg/log"
-	"github.com/aquasecurity/trivy/pkg/oci"
+	"github.com/h7hac9/trivy-java-db/pkg/db"
+	"github.com/h7hac9/trivy-java-db/pkg/types"
 )
 
-const (
-	SchemaVersion = db.SchemaVersion
-	mediaType     = "application/vnd.aquasec.trivy.javadb.layer.v1.tar+gzip"
-)
+var config *types.DBConfig
 
-var DefaultRepository = fmt.Sprintf("%s:%d", "ghcr.io/aquasecurity/trivy-java-db", SchemaVersion)
-
-var updater *Updater
-
-type Updater struct {
-	repo           name.Reference
-	dbDir          string
-	skip           bool
-	quiet          bool
-	registryOption ftypes.RegistryOptions
-	once           sync.Once // we need to update java-db once per run
-}
-
-func (u *Updater) Update() error {
-	dbDir := u.dbDir
-	metac := db.NewMetadata(dbDir)
-
-	meta, err := metac.Get()
-	if err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			return xerrors.Errorf("Java DB metadata error: %w", err)
-		} else if u.skip {
-			log.Error("The first run cannot skip downloading Java DB")
-			return xerrors.New("'--skip-java-db-update' cannot be specified on the first run")
-		}
-	}
-
-	if (meta.Version != SchemaVersion || meta.NextUpdate.Before(time.Now().UTC())) && !u.skip {
-		// Download DB
-		log.Info("Java DB Repository", log.Any("repository", u.repo))
-		log.Info("Downloading the Java DB...")
-
-		// TODO: support remote options
-		var a *oci.Artifact
-		if a, err = oci.NewArtifact(u.repo.String(), u.quiet, u.registryOption); err != nil {
-			return xerrors.Errorf("oci error: %w", err)
-		}
-		if err = a.Download(context.Background(), dbDir, oci.DownloadOption{MediaType: mediaType}); err != nil {
-			return xerrors.Errorf("DB download error: %w", err)
-		}
-
-		// Parse the newly downloaded metadata.json
-		meta, err = metac.Get()
-		if err != nil {
-			return xerrors.Errorf("Java DB metadata error: %w", err)
-		}
-
-		// Update DownloadedAt
-		meta.DownloadedAt = time.Now().UTC()
-		if err = metac.Update(meta); err != nil {
-			return xerrors.Errorf("Java DB metadata update error: %w", err)
-		}
-		log.Info("The Java DB is cached for 3 days. If you want to update the database more frequently, " +
-			`"trivy clean --java-db" command clears the DB cache.`)
-	}
-
-	return nil
-}
-
-func Init(cacheDir string, javaDBRepository name.Reference, skip, quiet bool, registryOption ftypes.RegistryOptions) {
-	updater = &Updater{
-		repo:           javaDBRepository,
-		dbDir:          dbDir(cacheDir),
-		skip:           skip,
-		quiet:          quiet,
-		registryOption: registryOption,
-	}
-}
-
-func Update() error {
-	if updater == nil {
-		return xerrors.New("Java DB client not initialized")
-	}
-
-	var err error
-	updater.once.Do(func() {
-		err = updater.Update()
-	})
-	return err
-}
-
-func Clear(ctx context.Context, cacheDir string) error {
-	return os.RemoveAll(dbDir(cacheDir))
-}
-
-func dbDir(cacheDir string) string {
-	return filepath.Join(cacheDir, "java-db")
+func Init(dbAuthURL string) {
+	config = &types.DBConfig{MysqlDBConfig: &types.MysqlDBConfig{DBConnectURL: dbAuthURL}}
 }
 
 type DB struct {
@@ -120,11 +20,7 @@ type DB struct {
 }
 
 func NewClient() (*DB, error) {
-	if err := Update(); err != nil {
-		return nil, xerrors.Errorf("Java DB update failed: %s", err)
-	}
-
-	dbc, err := db.New(updater.dbDir)
+	dbc, err := db.New("", config)
 	if err != nil {
 		return nil, xerrors.Errorf("Java DB open error: %w", err)
 	}
